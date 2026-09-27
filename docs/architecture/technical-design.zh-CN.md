@@ -1,10 +1,10 @@
-# ReemHub 技术架构设计
+# UAEHub 技术架构设计
 
 | 项目 | 内容 |
 | --- | --- |
 | 版本 | v0.14.0（实施基线） |
 | 更新日期 | 2026-09-27 |
-| 对应产品文档 | [ReemHub PRD](../product/prd.zh-CN.md) |
+| 对应产品文档 | [UAEHub PRD](../product/prd.zh-CN.md) |
 | 架构风格 | 模块化单体（Modular Monolith） |
 
 ## 1. 文档目的

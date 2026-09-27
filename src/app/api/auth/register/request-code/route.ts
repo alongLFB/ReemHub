@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     const issued = await issueRegistrationCode(parsed.data);
     await sendMail({
       to: parsed.data.email,
-      subject: "ReemHub 注册验证码",
-      text: "你的 ReemHub 注册验证码是 " + issued.code + "，10 分钟内有效。请勿将验证码发送给其他人。",
+      subject: "UAEHub 注册验证码",
+      text: "你的 UAEHub 注册验证码是 " + issued.code + "，10 分钟内有效。请勿将验证码发送给其他人。",
     });
     return NextResponse.json({ ok: true });
   } catch {

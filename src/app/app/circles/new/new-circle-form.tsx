@@ -45,7 +45,7 @@ export function NewCircleForm() {
         <textarea className="mt-2 min-h-28 w-full rounded-xl border border-[var(--line)] px-3 py-3 outline-none focus:border-[var(--brand)]" maxLength={1000} onChange={(event) => setDescription(event.target.value)} placeholder="这是一个怎样的圈子？" value={description} />
       </label>
       <label className="block text-sm font-medium">标签（用逗号分隔，最多 5 个）
-        <input className="mt-2 w-full rounded-xl border border-[var(--line)] px-3 py-3 outline-none focus:border-[var(--brand)]" onChange={(event) => setTags(event.target.value)} placeholder="Reem, 约饭, 亲子" value={tags} />
+        <input className="mt-2 w-full rounded-xl border border-[var(--line)] px-3 py-3 outline-none focus:border-[var(--brand)]" onChange={(event) => setTags(event.target.value)} placeholder="UAE, 约饭, 亲子" value={tags} />
       </label>
       <fieldset>
         <legend className="text-sm font-medium">可见性</legend>

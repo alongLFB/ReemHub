@@ -12,10 +12,10 @@ RUN npm run prisma:generate && npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production
-RUN useradd --system --uid 1001 reemhub
-COPY --from=builder --chown=reemhub:reemhub /app/.next/standalone ./
-COPY --from=builder --chown=reemhub:reemhub /app/.next/static ./.next/static
-COPY --from=builder --chown=reemhub:reemhub /app/public ./public
-USER reemhub
+RUN useradd --system --uid 1001 uaehub
+COPY --from=builder --chown=uaehub:uaehub /app/.next/standalone ./
+COPY --from=builder --chown=uaehub:uaehub /app/.next/static ./.next/static
+COPY --from=builder --chown=uaehub:uaehub /app/public ./public
+USER uaehub
 EXPOSE 3000
 CMD ["node", "server.js"]

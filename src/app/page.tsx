@@ -8,7 +8,7 @@ export default async function HomePage() {
     <main className="min-h-screen px-5 py-6 sm:px-10">
       <nav className="mx-auto flex max-w-5xl items-center justify-between">
         <Link className="text-xl font-bold tracking-tight text-[var(--brand)]" href="/">
-          ReemHub
+          UAEHub
         </Link>
         <Link
           className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium"
@@ -29,7 +29,7 @@ export default async function HomePage() {
             放回你的圈子里。
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--muted)]">
-            ReemHub 让每个圈子独立管理成员、资料可见性、餐厅推荐、活动与账单。信息只在获得批准的成员之间流动。
+            UAEHub 让每个圈子独立管理成员、资料可见性、餐厅推荐、活动与账单。信息只在获得批准的成员之间流动。
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Link className="rounded-full bg-[var(--brand)] px-5 py-3 font-semibold text-white" href={session?.user?.id ? "/app" : "/login?mode=register"}>

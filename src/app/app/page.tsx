@@ -24,7 +24,7 @@ export default async function AppPage() {
   return (
     <main className="min-h-screen px-5 py-6 sm:px-10">
       <nav className="mx-auto flex max-w-5xl items-center justify-between">
-        <Link className="text-xl font-bold text-[var(--brand)]" href="/">ReemHub</Link>
+        <Link className="text-xl font-bold text-[var(--brand)]" href="/">UAEHub</Link>
         <span className="text-sm text-[var(--muted)]">{session.user.email}</span>
       </nav>
       <section className="mx-auto max-w-5xl py-12">

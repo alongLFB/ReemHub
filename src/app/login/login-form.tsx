@@ -74,7 +74,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
 
   return (
     <section className="w-full max-w-md rounded-3xl border border-[var(--line)] bg-white p-6 shadow-sm sm:p-8">
-      <Link className="text-lg font-bold text-[var(--brand)]" href="/">ReemHub</Link>
+      <Link className="text-lg font-bold text-[var(--brand)]" href="/">UAEHub</Link>
       <h1 className="mt-6 text-3xl font-bold">
         {mode === "login" ? "欢迎回来" : mode === "register" ? "创建你的账户" : "验证邮箱"}
       </h1>
@@ -82,7 +82,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         {mode === "login"
           ? "登录后即可创建、发现或申请加入圈子。"
           : mode === "register"
-            ? "先完成邮箱验证，再开始你的 ReemHub 旅程。"
+            ? "先完成邮箱验证，再开始你的 UAEHub 旅程。"
             : "请输入发送到邮箱的 6 位验证码。"}
       </p>
 

@@ -3,8 +3,8 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ReemHub",
-  description: "Reem 岛生活与约饭记账社群站",
+  title: "UAEHub",
+  description: "阿联酋生活、活动与记账社群站",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
