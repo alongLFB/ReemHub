@@ -4,8 +4,8 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: uaehub
-      POSTGRES_USER: uaehub
+      POSTGRES_DB: ${POSTGRES_DB:-uaehub}
+      POSTGRES_USER: ${POSTGRES_USER:-uaehub}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}
     ports:
       # 仅供宿主机调试；容器内的 web/worker 始终通过 db:5432 访问。
@@ -25,7 +25,7 @@ services:
     environment:
       NODE_ENV: production
       APP_ENV: production
-      DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uaehub}:${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-uaehub}?schema=public
       AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?请在 .env 中设置 FIELD_ENCRYPTION_KEY}
     depends_on:
@@ -44,7 +44,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3035}
       AUTH_URL: ${APP_BASE_URL:-http://localhost:3035}
       BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Dubai}
-      DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uaehub}:${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-uaehub}?schema=public
       AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?请在 .env 中设置 FIELD_ENCRYPTION_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -72,7 +72,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3035}
       AUTH_URL: ${APP_BASE_URL:-http://localhost:3035}
       BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Dubai}
-      DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uaehub}:${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-uaehub}?schema=public
       AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?请在 .env 中设置 FIELD_ENCRYPTION_KEY}
       SMTP_HOST: ${SMTP_HOST:-}
