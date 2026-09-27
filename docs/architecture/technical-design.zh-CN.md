@@ -358,6 +358,8 @@ docker compose up -d --build
 docker compose ps
 ~~~
 
+`APP_BASE_URL`（以及 Auth.js 使用的 `AUTH_URL`）必须是用户浏览器可访问的公开地址，不能是 Docker 容器 ID、`db` 或容器内端口。例如本地 Compose 使用 `http://localhost:3035`；通过域名部署时应改为 `https://hub.example.com`。
+
 不要在 Compose 服务中使用宿主机的 `localhost:5435` 作为数据库地址；该端口只给宿主机工具使用。容器服务通过内部网络的 `db:5432` 连接数据库。
 
 - 生产环境使用独立 PostgreSQL 卷、每日备份和定期恢复演练。

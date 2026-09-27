@@ -42,6 +42,7 @@ services:
       NODE_ENV: production
       APP_ENV: production
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3035}
+      AUTH_URL: ${APP_BASE_URL:-http://localhost:3035}
       BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Dubai}
       DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
       AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
@@ -69,6 +70,7 @@ services:
       NODE_ENV: production
       APP_ENV: production
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3035}
+      AUTH_URL: ${APP_BASE_URL:-http://localhost:3035}
       BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Dubai}
       DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
       AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}

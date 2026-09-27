@@ -9,6 +9,7 @@ export const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_ENV: z.enum(["local", "test", "production"]).default("local"),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
+  AUTH_URL: z.string().url().optional(),
   BUSINESS_TIME_ZONE: z.string().min(1).default("Asia/Dubai"),
   AUTH_SECRET: z.string().min(32),
   FIELD_ENCRYPTION_KEY: z.string().min(32),
