@@ -340,12 +340,32 @@ Docker or managed PostgreSQL（私网，不暴露公网端口）
   └── 加密备份 → 独立受控存储
 ~~~
 
+### 8.4 Docker Compose 一键部署
+
+仓库根目录的 `compose.yaml` 提供四个服务：
+
+- `db`：PostgreSQL 16；仅映射宿主机 `127.0.0.1:5435`，避免占用常见的 `5432`，容器之间仍使用 `db:5432`。
+- `migrate`：等待数据库健康后同步 Prisma 数据模型；完成后退出。
+- `web`：Next.js Web 服务，暴露宿主机 `3035`，默认访问地址为 `http://localhost:3035`。
+- `worker`：处理活动提醒、站内通知、SMTP 邮件与 Telegram 投递，不暴露端口。
+
+首次部署步骤：
+
+~~~bash
+cp .env.example .env
+# 在 .env 中填写 AUTH_SECRET 与 FIELD_ENCRYPTION_KEY；按需填写 Google / SMTP 参数
+docker compose up -d --build
+docker compose ps
+~~~
+
+不要在 Compose 服务中使用宿主机的 `localhost:5435` 作为数据库地址；该端口只给宿主机工具使用。容器服务通过内部网络的 `db:5432` 连接数据库。
+
 - 生产环境使用独立 PostgreSQL 卷、每日备份和定期恢复演练。
 - 密钥通过部署平台 Secret/受限 .env 注入；不得提交到 Git。
 - 提供 /api/health 健康检查，不返回版本、数据库凭证或用户信息。
 - 运行定时清理 Worker，处理到期的 RETAIN_7_DAYS 圈子；清理任务需报告成功、失败和积压数量。
 
-### 8.4 可观测性
+### 8.5 可观测性
 
 - 结构化日志记录请求 ID、用户 ID（若有）、circleId（若有）、操作名、结果和错误码。
 - 监控登录失败率、申请审批失败、数据库连接、通知未读积压、邮件投递失败、结算校验失败和备份状态。

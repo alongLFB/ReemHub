@@ -1,3 +1,5 @@
+name: uaehub
+
 services:
   db:
     image: postgres:16-alpine
@@ -6,7 +8,8 @@ services:
       POSTGRES_USER: uaehub
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      # 仅供宿主机调试；容器内的 web/worker 始终通过 db:5432 访问。
+      - "127.0.0.1:5435:5432"
     volumes:
       - uaehub-postgres:/var/lib/postgresql/data
     healthcheck:
@@ -14,6 +17,74 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: worker
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?请在 .env 中设置 FIELD_ENCRYPTION_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npx", "prisma", "db", "push", "--skip-generate"]
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      target: runner
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3035}
+      BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Dubai}
+      DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?请在 .env 中设置 FIELD_ENCRYPTION_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "3035:3000"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3035}
+      BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Dubai}
+      DATABASE_URL: postgresql://uaehub:build-only-password@db:5432/uaehub?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?请在 .env 中设置 AUTH_SECRET}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?请在 .env 中设置 FIELD_ENCRYPTION_KEY}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-30000}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-5}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   uaehub-postgres:
