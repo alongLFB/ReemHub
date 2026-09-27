@@ -1,0 +1,551 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum CircleVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum CircleStatus {
+  ACTIVE
+  DISSOLVED
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  LEFT
+  REMOVED
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum InvitationType {
+  LINK
+  CODE
+}
+
+enum ProfileField {
+  DISPLAY_NAME
+  AVATAR
+  BUILDING
+  PHONE
+  BANK_NAME
+  IBAN
+  BIRTHDAY
+}
+
+enum EventStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum EventRegistrationStatus {
+  GOING
+  WAITLIST
+  CANCELLED
+}
+
+enum BillStatus {
+  DRAFT
+  OPEN
+  SETTLED
+}
+
+enum BillParticipantType {
+  MEMBER
+  GUEST
+}
+
+enum SplitMethod {
+  EQUAL
+  EXACT_AMOUNT
+  PERCENTAGE
+  SHARES
+}
+
+enum TransferStatus {
+  PENDING
+  MARKED_PAID
+  SUPERSEDED
+}
+
+enum DissolutionMode {
+  DELETE_NOW
+  RETAIN_7_DAYS
+}
+
+enum NotificationChannel {
+  EMAIL
+  TELEGRAM
+}
+
+enum DeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+model User {
+  id                        String                         @id @default(uuid()) @db.Uuid
+  email                     String                         @unique @db.VarChar(320)
+  emailVerified             DateTime?
+  passwordHash              String?
+  name                      String?
+  displayName               String                         @default("") @db.VarChar(120)
+  image                     String?
+  building                  String?                        @db.VarChar(120)
+  phoneCiphertext           String?                        @db.Text
+  phoneLast4                String?                        @db.VarChar(4)
+  bankName                  String?                        @db.VarChar(120)
+  ibanCiphertext            String?                        @db.Text
+  ibanLast4                 String?                        @db.VarChar(4)
+  birthdayMonth             Int?
+  birthdayDay               Int?
+  authVersion               Int                            @default(0)
+  status                    UserStatus                     @default(ACTIVE)
+  accounts                  Account[]
+  sessions                  Session[]
+  verificationCodes         EmailVerificationCode[]
+  createdCircles            Circle[]                       @relation("CircleCreator")
+  memberships               CircleMembership[]
+  createdInvitations        CircleInvitation[]             @relation("InvitationCreator")
+  reviewedApplications      MembershipApplication[]         @relation("ApplicationReviewer")
+  restaurants               Restaurant[]                   @relation("RestaurantCreator")
+  createdEvents             Event[]                        @relation("EventCreator")
+  registrations             EventRegistration[]
+  rosterAdjustments         EventRosterAdjustment[]         @relation("RosterActor")
+  rosterTargets             EventRosterAdjustment[]         @relation("RosterTarget")
+  createdBills              Bill[]                         @relation("BillCreator")
+  billParticipants          BillParticipant[]               @relation("BillParticipantUser")
+  notifications             Notification[]
+  notificationPreference    UserNotificationPreference?
+  telegramChannel           TelegramNotificationChannel?
+  auditEvents               AuditEvent[]                   @relation("AuditActor")
+  initiatedDissolutions     CircleDissolution[]             @relation("DissolutionInitiator")
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model EmailVerificationCode {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @db.VarChar(320)
+  purpose    String   @db.VarChar(40)
+  codeHash   String   @db.VarChar(128)
+  pendingDisplayName String? @db.VarChar(120)
+  pendingPasswordHash String? @db.Text
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose, expiresAt])
+}
+
+model Circle {
+  id           String            @id @default(uuid()) @db.Uuid
+  creatorId    String            @db.Uuid
+  name         String            @db.VarChar(120)
+  slug         String            @unique @db.VarChar(140)
+  description  String?           @db.Text
+  image        String?
+  tags         String[]          @default([])
+  visibility   CircleVisibility  @default(PRIVATE)
+  status       CircleStatus      @default(ACTIVE)
+  dissolvedAt  DateTime?
+  purgeAt      DateTime?
+  creator      User              @relation("CircleCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  memberships  CircleMembership[]
+  invitations  CircleInvitation[]
+  restaurants  Restaurant[]
+  events       Event[]
+  bills        Bill[]
+  dissolutions CircleDissolution[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([visibility, status, createdAt])
+  @@index([creatorId, createdAt])
+}
+
+model CircleDissolution {
+  id            String            @id @default(uuid()) @db.Uuid
+  circleId      String            @db.Uuid
+  initiatedById String            @db.Uuid
+  mode          DissolutionMode
+  dissolvedAt   DateTime          @default(now())
+  purgeAt       DateTime?
+  restoredAt    DateTime?
+  circle        Circle            @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  initiatedBy   User              @relation("DissolutionInitiator", fields: [initiatedById], references: [id], onDelete: Restrict)
+
+  @@index([circleId, dissolvedAt])
+  @@index([purgeAt])
+}
+
+model CircleMembership {
+  id                    String                         @id @default(uuid()) @db.Uuid
+  circleId              String                         @db.Uuid
+  userId                String                         @db.Uuid
+  status                MembershipStatus               @default(PENDING)
+  role                  MembershipRole                 @default(MEMBER)
+  approvedAt            DateTime?
+  leftAt                DateTime?
+  removedAt             DateTime?
+  circle                Circle                         @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user                  User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications          MembershipApplication[]
+  visibility            MembershipProfileVisibility[]
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  @@unique([circleId, userId])
+  @@index([userId, status])
+  @@index([circleId, status, role])
+}
+
+model MembershipApplication {
+  id            String            @id @default(uuid()) @db.Uuid
+  membershipId  String            @db.Uuid
+  circleId      String            @db.Uuid
+  userId        String            @db.Uuid
+  invitationId  String?           @db.Uuid
+  status        MembershipStatus @default(PENDING)
+  submittedAt   DateTime          @default(now())
+  reviewedAt    DateTime?
+  reviewedById  String?           @db.Uuid
+  membership    CircleMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  invitation    CircleInvitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  reviewedBy    User?             @relation("ApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([circleId, status, submittedAt])
+  @@index([userId, submittedAt])
+}
+
+model MembershipProfileVisibility {
+  id           String           @id @default(uuid()) @db.Uuid
+  membershipId String           @db.Uuid
+  field        ProfileField
+  isVisible    Boolean          @default(false)
+  membership   CircleMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, field])
+}
+
+model CircleInvitation {
+  id          String         @id @default(uuid()) @db.Uuid
+  circleId    String         @db.Uuid
+  createdById String         @db.Uuid
+  type        InvitationType
+  tokenHash   String         @unique @db.VarChar(128)
+  expiresAt   DateTime?
+  maxUses     Int?
+  usedCount   Int            @default(0)
+  revokedAt   DateTime?
+  circle      Circle         @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  applications MembershipApplication[]
+  createdAt   DateTime       @default(now())
+
+  @@index([circleId, revokedAt, expiresAt])
+  @@index([createdById, createdAt])
+}
+
+model Restaurant {
+  id          String   @id @default(uuid()) @db.Uuid
+  circleId    String   @db.Uuid
+  createdById String   @db.Uuid
+  name        String   @db.VarChar(180)
+  cuisine     String?  @db.VarChar(120)
+  area        String?  @db.VarChar(120)
+  address     String?  @db.Text
+  mapsUrl     String?
+  avgSpendAed Decimal? @db.Decimal(12, 2)
+  notes       String?  @db.Text
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("RestaurantCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  events      Event[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([circleId, createdAt])
+  @@index([circleId, cuisine, area])
+}
+
+model Event {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  circleId             String                   @db.Uuid
+  creatorId            String                   @db.Uuid
+  restaurantId         String?                  @db.Uuid
+  title                String                   @db.VarChar(180)
+  eventTime            DateTime
+  locationName         String?                  @db.VarChar(180)
+  notes                String?                  @db.Text
+  maxParticipants      Int?
+  registrationDeadline DateTime?
+  waitlistEnabled      Boolean                  @default(false)
+  status               EventStatus              @default(OPEN)
+  circle               Circle                   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  creator              User                     @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  restaurant           Restaurant?              @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  registrations        EventRegistration[]
+  reminders            EventReminder[]
+  rosterAdjustments    EventRosterAdjustment[]
+  bills                Bill[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([circleId, eventTime])
+  @@index([creatorId, eventTime])
+}
+
+model EventRegistration {
+  id           String                  @id @default(uuid()) @db.Uuid
+  eventId      String                  @db.Uuid
+  userId       String                  @db.Uuid
+  status       EventRegistrationStatus @default(GOING)
+  joinedAt     DateTime                @default(now())
+  waitlistedAt DateTime?
+  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status, waitlistedAt])
+}
+
+model EventRosterAdjustment {
+  id           String                  @id @default(uuid()) @db.Uuid
+  eventId      String                  @db.Uuid
+  targetUserId String                  @db.Uuid
+  actorId      String?                 @db.Uuid
+  source       String                  @db.VarChar(40)
+  beforeStatus EventRegistrationStatus?
+  afterStatus  EventRegistrationStatus?
+  reason       String?                 @db.Text
+  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  targetUser   User                    @relation("RosterTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  actor        User?                   @relation("RosterActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt    DateTime                @default(now())
+
+  @@index([eventId, createdAt])
+  @@index([targetUserId, createdAt])
+}
+
+model EventReminder {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventId       String   @db.Uuid
+  offsetMinutes Int
+  scheduledAt   DateTime
+  sentAt        DateTime?
+  cancelledAt   DateTime?
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@unique([eventId, offsetMinutes])
+  @@index([scheduledAt, sentAt, cancelledAt])
+}
+
+model Bill {
+  id          String     @id @default(uuid()) @db.Uuid
+  circleId    String     @db.Uuid
+  eventId     String?    @db.Uuid
+  creatorId   String     @db.Uuid
+  title       String     @db.VarChar(180)
+  status      BillStatus @default(DRAFT)
+  circle      Circle     @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  event       Event?     @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  creator     User       @relation("BillCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  participants BillParticipant[]
+  expenses    Expense[]
+  transfers   SettlementTransfer[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([circleId, createdAt])
+  @@index([eventId])
+}
+
+model BillParticipant {
+  id                  String              @id @default(uuid()) @db.Uuid
+  billId              String              @db.Uuid
+  type                BillParticipantType
+  userId              String?             @db.Uuid
+  guestName           String?             @db.VarChar(120)
+  displayNameSnapshot String              @db.VarChar(120)
+  bill                Bill                @relation(fields: [billId], references: [id], onDelete: Cascade)
+  user                User?               @relation("BillParticipantUser", fields: [userId], references: [id], onDelete: SetNull)
+  paidExpenses        Expense[]           @relation("ExpensePayer")
+  splits              ExpenseSplit[]
+  outgoingTransfers   SettlementTransfer[] @relation("TransferFrom")
+  incomingTransfers   SettlementTransfer[] @relation("TransferTo")
+  createdAt           DateTime            @default(now())
+
+  @@unique([billId, userId])
+  @@index([billId, type])
+}
+
+model Expense {
+  id                 String      @id @default(uuid()) @db.Uuid
+  billId             String      @db.Uuid
+  payerParticipantId String      @db.Uuid
+  title              String      @db.VarChar(180)
+  amountAed          Decimal     @db.Decimal(12, 2)
+  splitMethod        SplitMethod
+  bill               Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)
+  payer              BillParticipant @relation("ExpensePayer", fields: [payerParticipantId], references: [id], onDelete: Restrict)
+  splits             ExpenseSplit[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([billId, createdAt])
+}
+
+model ExpenseSplit {
+  id              String          @id @default(uuid()) @db.Uuid
+  expenseId       String          @db.Uuid
+  participantId   String          @db.Uuid
+  amountAed       Decimal         @db.Decimal(12, 2)
+  inputPercentage Decimal?        @db.Decimal(7, 4)
+  inputShares     Int?
+  expense         Expense         @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  participant     BillParticipant @relation(fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@unique([expenseId, participantId])
+  @@index([participantId])
+}
+
+model SettlementTransfer {
+  id                String          @id @default(uuid()) @db.Uuid
+  billId            String          @db.Uuid
+  fromParticipantId String          @db.Uuid
+  toParticipantId   String          @db.Uuid
+  amountAed         Decimal         @db.Decimal(12, 2)
+  status            TransferStatus  @default(PENDING)
+  markedPaidAt      DateTime?
+  markedPaidById    String?         @db.Uuid
+  bill              Bill            @relation(fields: [billId], references: [id], onDelete: Cascade)
+  fromParticipant   BillParticipant @relation("TransferFrom", fields: [fromParticipantId], references: [id], onDelete: Restrict)
+  toParticipant     BillParticipant @relation("TransferTo", fields: [toParticipantId], references: [id], onDelete: Restrict)
+  createdAt         DateTime        @default(now())
+
+  @@index([billId, status])
+}
+
+model Notification {
+  id        String                 @id @default(uuid()) @db.Uuid
+  userId    String                 @db.Uuid
+  type      String                 @db.VarChar(80)
+  title     String                 @db.VarChar(255)
+  body      String                 @db.Text
+  targetUrl String?
+  readAt    DateTime?
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+  createdAt DateTime               @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model NotificationDelivery {
+  id             String              @id @default(uuid()) @db.Uuid
+  notificationId String              @db.Uuid
+  channel        NotificationChannel
+  recipient      String              @db.Text
+  status         DeliveryStatus      @default(PENDING)
+  attempts       Int                 @default(0)
+  nextAttemptAt  DateTime            @default(now())
+  sentAt         DateTime?
+  providerId     String?
+  lastError      String?             @db.Text
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+
+  @@index([status, nextAttemptAt])
+}
+
+model UserNotificationPreference {
+  userId                     String   @id @db.Uuid
+  emailEventRemindersEnabled Boolean  @default(true)
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt                  DateTime @updatedAt
+}
+
+model TelegramNotificationChannel {
+  userId             String   @id @db.Uuid
+  botTokenCiphertext String   @db.Text
+  chatId             String   @db.VarChar(80)
+  verifiedAt         DateTime?
+  enabledAt          DateTime?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt          DateTime @updatedAt
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  circleId   String?  @db.Uuid
+  eventType  String   @db.VarChar(120)
+  entityType String   @db.VarChar(80)
+  entityId   String   @db.VarChar(120)
+  metadata   Json?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([circleId, createdAt])
+}
