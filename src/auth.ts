@@ -100,23 +100,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google" && user.id) {
+      if (account?.provider === "google" && user.email) {
         const profileName =
           typeof profile?.name === "string" && profile.name.trim()
             ? profile.name.trim()
             : undefined;
-        if (profileName) {
-          await prisma.user.updateMany({
-            where: { id: user.id, displayName: "" },
-            data: { displayName: profileName },
-          });
-        }
-        await writeAuditEvent(prisma, {
-          actorId: user.id,
-          eventType: "GOOGLE_LOGIN_SUCCEEDED",
-          entityType: "Authentication",
-          entityId: user.id,
+        // In the OAuth signIn callback, `user.id` can be the provider's subject
+        // (Google `sub`) rather than the UUID persisted by the Prisma adapter.
+        const persistedUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { id: true },
         });
+        if (persistedUser) {
+          if (profileName) {
+            await prisma.user.updateMany({
+              where: { id: persistedUser.id, displayName: "" },
+              data: { displayName: profileName },
+            });
+          }
+          // Audit availability must not deny an otherwise valid OAuth login.
+          await writeAuditEvent(prisma, {
+            actorId: persistedUser.id,
+            eventType: "GOOGLE_LOGIN_SUCCEEDED",
+            entityType: "Authentication",
+            entityId: persistedUser.id,
+          }).catch(() => undefined);
+        }
       }
       return true;
     },
